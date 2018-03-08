@@ -1,5 +1,6 @@
 package com.tp;
 
+import com.intellij.codeInsight.actions.ReformatCodeAction;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.LangDataKeys;
@@ -9,10 +10,13 @@ import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.editor.SelectionModel;
 import com.intellij.openapi.project.Project;
-import com.intellij.psi.PsiClass;
-import com.intellij.psi.PsiElement;
-import com.intellij.psi.PsiFile;
+import com.intellij.psi.*;
+import com.intellij.psi.codeStyle.CodeStyleManager;
+import com.intellij.psi.impl.PsiElementFactoryImpl;
+import com.intellij.psi.search.GlobalSearchScope;
+import com.intellij.psi.search.PsiShortNamesCache;
 import com.intellij.psi.util.PsiTreeUtil;
+import com.intellij.psi.util.PsiUtil;
 import com.intellij.psi.util.PsiUtilBase;
 import com.tp.json.JsonBeanCreated;
 import org.json.JSONException;
@@ -28,11 +32,12 @@ public class CreateJsonPojo extends AnAction  implements OnClickLinstener {
     AnActionEvent anActionEvent;
     String currentEditorFileName;
     String className;
+    private PsiClass psiClass;
+
     @Override
     public void actionPerformed(AnActionEvent anActionEvent) {
         // TODO: insert action logic here
         this.anActionEvent = anActionEvent;
-        Project project;
         project = anActionEvent.getData(PlatformDataKeys.PROJECT);
 
         editor = anActionEvent.getData(PlatformDataKeys.EDITOR);
@@ -44,8 +49,12 @@ public class CreateJsonPojo extends AnAction  implements OnClickLinstener {
         /**
          * 文件名的前缀
          */
+        psiClass = getPsiClassFromContext(anActionEvent,currentEditorFile,editor);
         className = currentEditorFileName.split("\\.")[0];
         showHintDialog(currentEditorFile, className, project);
+
+//        CodeStyleManager.getInstance(project).reformat(psiClass);
+//        new ReformatCodeAction().actionPerformed(anActionEvent);
     }
 
 
@@ -59,12 +68,12 @@ public class CreateJsonPojo extends AnAction  implements OnClickLinstener {
         if (psiFile == null || editor == null) {
             return null;
         }
-        //获取插入的model，并获取偏移量
-        int offset = editor.getCaretModel().getOffset();
-        //根据偏移量找到psi元素
-        PsiElement element = psiFile.findElementAt(offset);
-        //根据元素获取到当前的上下文的类
-        return PsiTreeUtil.getParentOfType(element, PsiClass.class);
+
+
+        PsiElement element = psiFile.findElementAt(editor.getCaretModel().getOffset());
+        PsiClass psiClass = PsiTreeUtil.getParentOfType(element, PsiClass.class);
+
+        return  psiClass;
     }
 
 
@@ -131,6 +140,10 @@ public class CreateJsonPojo extends AnAction  implements OnClickLinstener {
         //写入到编辑器内容
         writeEditorStr(project, editor, document, selectionModel, stringBuffer);
 
+
+
+
+
     }
 
 
@@ -149,16 +162,46 @@ public class CreateJsonPojo extends AnAction  implements OnClickLinstener {
         int lineNumber = document.getLineNumber(offset) + 1;
         int lineStartOffset = document.getLineStartOffset(lineNumber);
         //创建线程 输入到编译器中
+
+        PsiElementFactory factory = JavaPsiFacade.getInstance(project).getElementFactory();
+        PsiField field = factory.createFieldFromText("public int a = 0;", psiClass);
+//        psiClass.add(field);
         Runnable runnable = new Runnable() {
             @Override
             public void run() {
                 //写入
                 document.insertString(lineStartOffset, stringBuffer.toString());
+                PsiDocumentManager manager = PsiDocumentManager.getInstance(project);
+                manager.commitDocument(document);
+
+
+                createdImport();
+
+                CodeStyleManager.getInstance(project).reformat(psiClass);
+//                new ReformatCodeAction().actionPerformed(anActionEvent);
+
             }
         };
         //执行写入
         WriteCommandAction.runWriteCommandAction(project, runnable);
         //移除掉选择的model
-        selectionModel.removeSelection();
+//        selectionModel.removeSelection();
+
+    }
+
+
+    public void createdImport(){
+      /*  GlobalSearchScope searchScope = GlobalSearchScope.allScope(project);
+        PsiClass[] psiClasses = PsiShortNamesCache.getInstance(project).getClassesByName(psiClass.getClass().getName(), searchScope);
+
+        PsiImportStatement importStatement = PsiElementFactoryImpl.SERVICE.getInstance(project).createImportStatement(psiClass);
+        ((PsiJavaFile) psiClass.getContainingFile()).getImportList().add(importStatement);
+
+        importStatement.getContainingFile().geti
+
+        if (psiClasses!=null){
+
+        }*/
+
     }
 }

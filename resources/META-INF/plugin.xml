@@ -1,11 +1,11 @@
 <idea-plugin>
   <id>com.tp.globalegrow</id>
   <name>gb-json-pojo</name>
-  <version>1.2</version>
+  <version>1.3</version>
   <vendor email="871625458@qq.com" url="http://www.globalegrow.com/">tanping</vendor>
 
   <description><![CDATA[
-       全球易购 json 生成解析bean pojo 插件
+       全球易购 json 生成解析bean pojo 插件,新增自动格式化
     ]]></description>
 
   <change-notes><![CDATA[
